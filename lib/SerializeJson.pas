@@ -50,7 +50,7 @@ begin
     exit;
   end;
 
-  if (et = etUnion) then begin
+  if (et = etValue ) or (et = etSubRecordUnion) or (et = etUnion) then begin
     // hacky
 
     if (ElementCount(e) > 0) then begin
@@ -72,12 +72,12 @@ begin
     exit;
   end;
 
-  if (et = etStruct) or (et = etSubRecordStruct) or (dt = dtStruct) then begin
+  if (et = etStructChapter) or (et = etSubRecord) or (et = etStruct) or (et = etSubRecordStruct) or (dt = dtStruct) then begin
     Result := 'Object';
     exit;
   end;
 
-  if (et = etSubRecordArray) or (dt = dtArray) then begin
+  if (et = etArray) or (et = etSubRecordArray) or (dt = dtArray) then begin
     Result := 'Array';
     exit;
   end;
@@ -88,6 +88,7 @@ begin
       Result := 'Object';
       exit;
     end;
+	
 
     editValue := GetEditValue(e);
     // ?? dammit xEdit
@@ -115,7 +116,7 @@ begin
     exit;
   end;
 
-  if (dt = dtFloat) then begin
+  if  (dt = dtFloat) then begin
     Result := 'Number';
     exit;
   end;
@@ -130,6 +131,7 @@ begin
     exit;
   end;
 
+  
   Result := '';
 end;
 
@@ -211,29 +213,46 @@ begin
   
 end;
 
+
+	
+
+
 function _SerializeObject(e: IInterface): String;
 var
   n: Integer;
   ei: IInterface;
   s: String;
-
+  tmp: String;
 begin
-  Result := '"'+_SerializeName(e) + '": {';
-  _tabIndex := _tabIndex + 1;
 
-  for n := 0 to ElementCount(e) - 1 do begin
-    ei := ElementByIndex(e, n);
-    s := _Serialize(ei);
+	if( ElementCount(e) = 0 ) then 
+	begin
 
-    if (s <> '') then Result := Result + _tab() + s;
+	  tmp := StringReplace(GetEditValue(e), '"', '\"', [rfReplaceAll]);
+	  tmp := StringReplace(tmp, '\', '\\', [rfReplaceAll]);
+	  Result := Result + _tab() + '"'+_SerializeName(e) + '": "'+tmp+'"';
+	end
+	else 
+	begin
+	  Result := '"'+_SerializeName(e) + '": {';
+	  _tabIndex := _tabIndex + 1;
 
-	if((n < ElementCount(e)-1) and (s <> '') ) then Result := Result + ',';
-  end;
+	  
+	  for n := 0 to ElementCount(e) - 1 do begin
 
-  _tabIndex := _tabIndex - 1;
-  
-  Result := Result + _tab() + '}';
+		ei := ElementByIndex(e, n);
+		s := _Serialize(ei);
 
+		if (s = '') then s = '"'+_EscapeStrings(GetEditValue(e))+'"';
+		if (s <> '') then Result := Result + _tab() + s;
+
+		if((n < ElementCount(e)-1) and (s <> '') ) then Result := Result + ',';
+	  end;
+
+	  _tabIndex := _tabIndex - 1;
+	  
+	  Result := Result + _tab() + '}';
+	end
 end;
 
 function _SerializeArray(e: IInterface): String;
@@ -358,7 +377,31 @@ begin
     Result := _SerializeEmpty(e)
   else
     Result := _SerializeUnknown(e);
+{
+  if (t = 'Main') then
+    Result := 'Main ' + _SerializeMain(e)
+  else if (t = 'Array') then
+    Result := 'Array ' +_SerializeArray(e)
+  else if (t = 'Object') then
+    Result := 'Object ' +_SerializeObject(e)
+  else if (t = 'Number') then
+    Result := 'Number ' +_SerializeNumber(e)
+  else if (t = 'Boolean') then
+    Result := 'Boolean ' +_SerializeBoolean(e)
+  else if (t = 'Link') then
+    Result := 'Link ' +_SerializeLink(e)
+  else if (t = 'ByteArray') then
+    Result := 'ByteArray ' +_SerializeByteArray(e)
+  else if (t = 'String') then
+    Result := 'String ' +_SerializeString(e)
+  else if (t = 'NullRef') then
+    Result := 'NullRef ' +_SerializeNullRef(e)
 
+  else if (t = 'Empty') then
+    Result := 'Empty ' +_SerializeEmpty(e)
+  else
+    Result := 'Unknown ' +_SerializeUnknown(e);
+}
 end;
 
 // Public
