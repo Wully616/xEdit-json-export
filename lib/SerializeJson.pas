@@ -68,7 +68,7 @@ begin
   end;
 
   if (et = etFlag) then begin
-    Result := 'Boolean';
+    Result := 'Number';
     exit;
   end;
 
@@ -166,8 +166,8 @@ var EDID: String;
 begin
   EDID := GetElementEditValues(e, 'EDID');
   fullName := GetElementEditValues(e, 'Full - Name');
-  if (Result = '') then Result := fullName;
-  if (Result = '') then Result := EDID;  
+  //if (Result = '') then Result := fullName;
+  //if (Result = '') then Result := EDID;  
   if (Result = '') then Result := IntToHex(FixedFormID(e), 8);
   Result := Result;
 end;
@@ -223,14 +223,23 @@ var
   ei: IInterface;
   s: String;
   tmp: String;
+  
 begin
 
 	if( ElementCount(e) = 0 ) then 
 	begin
 
-	  tmp := StringReplace(GetEditValue(e), '"', '\"', [rfReplaceAll]);
+	  tmp := StringReplace(GetEditValue(e), '"', #39, [rfReplaceAll]);
+	  tmp := StringReplace(tmp, #13#10, '', [rfReplaceAll]);
 	  tmp := StringReplace(tmp, '\', '\\', [rfReplaceAll]);
-	  Result := Result + _tab() + '"'+_SerializeName(e) + '": "'+tmp+'"';
+	  tmp := StringReplace(tmp, '/', '\/', [rfReplaceAll]);
+      tmp := StringReplace(tmp, #9, '\t', [rfReplaceAll]);
+	  tmp := StringReplace(tmp, #190, '3\/4', [rfReplaceAll]);
+	  tmp := StringReplace(tmp, #8, '', [rfReplaceAll]);
+	  if(tmp = '') then tmp := 'null';
+	  tmp := '"'+tmp+'"';
+	  
+	  Result := Result + _tab() + '"'+_SerializeName(e) + '": '+tmp;
 	end
 	else 
 	begin
@@ -286,11 +295,18 @@ begin
 end;
 
 function _SerializeString(e: IInterface): String;
-var val: String;
+var tmp: String;
 begin
-  val := StringReplace(GetEditValue(e), '"', '\"', [rfReplaceAll]);
-  val := StringReplace(val, '\', '\\', [rfReplaceAll]);
-  Result := '"' + _SerializeName(e) + '": "' + val + '"';
+  tmp := StringReplace(GetEditValue(e), '"', #39, [rfReplaceAll]);
+  tmp := StringReplace(tmp, #13#10, '', [rfReplaceAll]);
+  tmp := StringReplace(tmp, '\', '\\', [rfReplaceAll]);
+  tmp := StringReplace(tmp, '/', '\/', [rfReplaceAll]);
+  tmp := StringReplace(tmp, #9, '\t', [rfReplaceAll]);
+  tmp := StringReplace(tmp, #190, '3\/4', [rfReplaceAll]);
+  tmp := StringReplace(tmp, #8, '', [rfReplaceAll]);
+  if(tmp = '') then tmp := 'null';
+  tmp := '"'+tmp+'"';
+  Result := '"' + _SerializeName(e) + '": ' + tmp;
 end;
 
 function _SerializeBoolean(e: IInterface): String;
@@ -310,13 +326,20 @@ begin
 end;
 
 function _SerializeByteArray(e: IInterface): String;
+var tmp: String;
 begin
-  Result := '"' +_SerializeName(e) + '": "' + GetEditValue(e) + '"';
+  tmp := GetEditValue(e);
+  if(tmp = '') then tmp := 'null';
+  Result := '"' +_SerializeName(e) + '": "' + tmp + '"';
 end;
 
 function _SerializeNumber(e: IInterface): String;
+var tmp: String;
 begin
-  Result := '"' +_SerializeName(e) + '": ' + GetEditValue(e);
+  tmp := GetEditValue(e);
+  if(tmp = '') then tmp := 'null';
+  tmp := '"'+tmp+'"';
+  Result := '"' +_SerializeName(e) + '": ' + tmp;
 end;
 
 function _SerializeLink(e: IInterface): String;
@@ -341,8 +364,11 @@ function _SerializeUnknown(e: IInterface): String;
 var
   x: Variant;
   n, vt: Integer;
+  tmp: String;
 begin
-  Result := '"' +Name(e) + '": "' + GetEditValue(e) + '"' ;
+  tmp := GetEditValue(e);
+  if(tmp = '') then tmp := 'null';
+  Result := '"' +Name(e) + '": "' + tmp + '"' ;
 end;
 
 // ..
