@@ -30,9 +30,12 @@ begin
 end;
 
 function Process(e: IInterface): integer;
-
+var
+ output: String;
 begin
-  outputJSON.Add( Serialize(e));
+	output := Serialize(e);
+	if(output <> '') then outputJSON.Add( output );
+  
 end;
 
 function Finalize: integer;

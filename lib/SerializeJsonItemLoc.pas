@@ -50,7 +50,7 @@ begin
     exit;
   end;
 
-  if (et = etUnion) then begin
+  if (et = etValue ) or (et = etSubRecordUnion) or (et = etUnion) then begin
     // hacky
 
     if (ElementCount(e) > 0) then begin
@@ -72,12 +72,12 @@ begin
     exit;
   end;
 
-  if (et = etStruct) or (et = etSubRecordStruct) or (dt = dtStruct) then begin
+  if (et = etStructChapter) or (et = etSubRecord) or (et = etStruct) or (et = etSubRecordStruct) or (dt = dtStruct) then begin
     Result := 'Object';
     exit;
   end;
 
-  if (et = etSubRecordArray) or (dt = dtArray) then begin
+  if (et = etArray) or (et = etSubRecordArray) or (dt = dtArray) then begin
     Result := 'Array';
     exit;
   end;
@@ -88,6 +88,7 @@ begin
       Result := 'Object';
       exit;
     end;
+	
 
     editValue := GetEditValue(e);
     // ?? dammit xEdit
@@ -115,7 +116,7 @@ begin
     exit;
   end;
 
-  if (dt = dtFloat) then begin
+  if  (dt = dtFloat) then begin
     Result := 'Number';
     exit;
   end;
@@ -130,6 +131,7 @@ begin
     exit;
   end;
 
+  
   Result := '';
 end;
 
@@ -186,26 +188,34 @@ begin
   Result := Result + _tab() + '}';
 end;
 
+
+
 function _SerializeMain(e: IInterface): String;
 var
   n: Integer;
   ei: IInterface;
+  sig: String;
 begin
+    sig := Signature(LinksTo(ElementByName(e,'NAME - Base')));
+	  
+	//if( ( ElementExists(e,'Map Marker') and ( sig = 'STAT' ) ) or ( sig = 'AMMO' ) or ( sig = 'ARMO' ) or ( sig = 'BOOK' ) or ( sig = 'CNCY' ) or ( sig = 'CONT' ) or ( sig = 'FLOR' ) or ( sig = 'FURN' ) or ( sig = 'LVLI' ) or ( sig = 'MISC' ) or ( sig = 'ACHR' ) or ( sig = 'ALCH' ) or ( sig = 'CMPO' ) or ( sig = 'INGR' )  or ( sig = 'KEYM' ) or ( sig = 'LCRT' ) or ( sig = 'LCTN' ) or ( sig = 'LVLN' ) or ( sig = 'LVLP' ) or ( sig = 'LVPS' ) or ( sig = 'NPC_' ) or ( sig = 'PACH' ) or ( sig = 'PPAK' ) or ( sig = 'TERM' ) or ( sig = 'WEAP' ) ) then  
+	//begin
+	  Result := '"' + _SerializeComment(e) + '":{';
 
-  
-  Result := '"' + _SerializeComment(e) + '":{';
-
-  _tabIndex := _tabIndex + 1;
-
-  for n := 0 to ElementCount(e) - 1 do begin
-    ei := ElementByIndex(e, n);
-	if (Name(ei) = 'NAME - Base') then Result := Result + _tab() + _SerializeSig(ei) + ',';
-	if (Name(ei) = 'XLYR - Layer') then Result := Result + _tab() + _Serialize(ei) + ',';
-	if (Name(ei) = 'DATA - Position/Rotation') then Result := Result + _tab() + _Serialize(ei);
-  end;
-
-  _tabIndex := _tabIndex - 1;
-  Result := Result + _tab() +'},';
+	  _tabIndex := _tabIndex + 1;
+	  //if (ElementExists(e,'NAME - Base')) then Result := Result + _tab() + _SerializeSig(ElementByName(e,'NAME - Base')) + ',';
+	  //if (ElementExists(e,'Map Marker')) then Result := Result + _tab() + _Serialize(ElementByName(ElementByName(e,'Map Marker'),'FULL - Name'))   + ',';
+	  //if (ElementExists(e,'Map Marker')) then Result := Result + _tab() + _Serialize(ElementByName(ElementByName(ElementByName(e,'Map Marker'),'TNAM - TNAM'),'Type'))   + ',';
+	  //if (ElementExists(e,'XLYR - Layer')) then Result := Result + _tab() + _Serialize(ElementByName(e,'XLYR - Layer')) + ',';
+	  //if (ElementExists(e,'Cell')) then Result := Result + _tab() + _SerializeCellRegion(ElementByName(e,'Cell')) + ',';
+	  //if (ElementExists(e,'NAME - Base')) then Result := Result + _tab() + _SerializeLeveledItems(ElementByName(e,'NAME - Base')) + ',';
+	  if (ElementExists(e,'DATA - Position/Rotation')) then Result := Result + _tab() + _Serialize( ElementByName(ElementByName(e,'DATA - Position/Rotation'),'Position') );
+	  //if (ElementExists(e,'Leveled List Entries'))then Result := Result + _tab() + _Serialize(ElementByName(e,'Leveled List Entries'));
+	
+	  
+	  _tabIndex := _tabIndex - 1;
+	  Result := Result + _tab() +'},';		
+	//end;
   
 end;
 
@@ -216,22 +226,32 @@ var
   s: String;
 
 begin
-  Result := '"'+_SerializeName(e) + '": {';
-  _tabIndex := _tabIndex + 1;
 
-  for n := 0 to ElementCount(e) - 1 do begin
-    ei := ElementByIndex(e, n);
-    s := _Serialize(ei);
+	if( ElementCount(e) = 0 ) then 
+	begin
+	  Result := Result + _tab() + '"'+_SerializeName(e) + '": "'+GetEditValue(e)+'"';
+	end
+	else 
+	begin
+	  Result := '"'+_SerializeName(e) + '": {';
+	  _tabIndex := _tabIndex + 1;
 
-    if (s <> '') then Result := Result + _tab() + s;
+	  
+	  for n := 0 to ElementCount(e) - 1 do begin
 
-	if((n < ElementCount(e)-1) and (s <> '') ) then Result := Result + ',';
-  end;
+		ei := ElementByIndex(e, n);
+		s := _Serialize(ei);
 
-  _tabIndex := _tabIndex - 1;
-  
-  Result := Result + _tab() + '}';
+		if (s = '') then s = '"'+GetEditValue(e)+'"';
+		if (s <> '') then Result := Result + _tab() + s;
 
+		if((n < ElementCount(e)-1) and (s <> '') ) then Result := Result + ',';
+	  end;
+
+	  _tabIndex := _tabIndex - 1;
+	  
+	  Result := Result + _tab() + '}';
+	end
 end;
 
 function _SerializeArray(e: IInterface): String;
@@ -298,12 +318,87 @@ begin
   Result := '"' +_SerializeName(e) + '": ' + GetEditValue(e);
 end;
 
+function _SerializeCellRegion(e: IInterface): String;
+var
+  ln: IInterface;
+begin
+  ln := LinksTo(e);
+
+	if (ElementExists(ln,'XCLR - Regions')) then Result := Result + _tab() + _SerializeArray(ElementByName(ln,'XCLR - Regions'));	
+	
+end;
+
+function _SerializeLeveledItems(e: IInterface): String;
+var
+  ln: IInterface;
+begin
+  ln := LinksTo(e);
+
+	Result := '"Reference":{';
+
+	_tabIndex := _tabIndex + 1;
+
+	if (ElementExists(ln,'Full - Name'))then Result := Result + _tab() + _Serialize(ElementByName(ln,'Full - Name')) ;
+	if (ElementExists(ln,'LVLG - Use Global'))then Result := Result + _tab() + _SerializeGlob(ElementByName(ln,'LVLG - Use Global')) + ',';
+	if (ElementExists(ln,'Leveled List Entries'))then Result := Result + _tab() + _Serialize(ElementByName(ln,'Leveled List Entries'));
+	
+
+	_tabIndex := _tabIndex - 1;
+	Result := Result + _tab() +'}';		
+	
+end;
+
+function _SerializeGlob(e: IInterface): String;
+var
+  ln: IInterface;
+begin
+  ln := LinksTo(e);
+
+	Result := '"' + _SerializeComment(ln) + '":{';
+
+	_tabIndex := _tabIndex + 1;
+
+	
+	if (ElementExists(ln,'FLTV - Value'))then Result := Result + _tab() + _Serialize(ElementByName(ln,'FLTV - Value'));
+	
+	
+
+	_tabIndex := _tabIndex - 1;
+	Result := Result + _tab() +'}';		
+	
+end;
+function _SerializeBase(e: IInterface): String;
+var
+  base: IInterface;
+begin
+  base := BaseRecord(e);
+	  
+	Result := '"' + _SerializeComment(base) + '":{';
+
+	_tabIndex := _tabIndex + 1;
+
+	_SerializeObject(base);
+	//if (ElementExists(ln,'LVG - Use Global'))then Result := Result + _tab() + _Serialize(ElementByName(ln,'LVG - Use Global'));
+
+
+	_tabIndex := _tabIndex - 1;
+	Result := Result + _tab() +'}';		
+	
+end;
+
 function _SerializeLink(e: IInterface): String;
 var
   ln: IInterface;
 begin
   ln := LinksTo(e);
-  Result := '"' +_SerializeName(e) + '": "' + _SerializeComment(ln) + '"' ;
+  
+  //logic for lookup specific references like loot tables
+  if (_SerializeName(e) = 'Reference') then 
+    Result := Result + _SerializeLeveledItems(e)
+  else
+    Result := '"' +_SerializeName(e) + '": "' + _SerializeComment(ln) + '"'
+
+  
 end;
 
 function _SerializeSig(e: IInterface): String;
@@ -312,8 +407,8 @@ var
   ln: IInterface;
 begin
   ln := LinksTo(e);
-  Result := '"' +_SerializeName(e) + '": "' + _SerializeComment(ln) + '",' ;
-  Result := Result + _tab() + '"Signature": "' + Signature(ln) +'"';
+  Result := '"' +_SerializeName(e) + '": "' + _SerializeComment(ln) + '"' ;
+  //Result := Result + _tab() + '"Signature": "' + _SerializeCell(e) +'"';
 
 end;
 
@@ -367,7 +462,31 @@ begin
     Result := _SerializeEmpty(e)
   else
     Result := _SerializeUnknown(e);
+{
+  if (t = 'Main') then
+    Result := 'Main ' + _SerializeMain(e)
+  else if (t = 'Array') then
+    Result := 'Array ' +_SerializeArray(e)
+  else if (t = 'Object') then
+    Result := 'Object ' +_SerializeObject(e)
+  else if (t = 'Number') then
+    Result := 'Number ' +_SerializeNumber(e)
+  else if (t = 'Boolean') then
+    Result := 'Boolean ' +_SerializeBoolean(e)
+  else if (t = 'Link') then
+    Result := 'Link ' +_SerializeLink(e)
+  else if (t = 'ByteArray') then
+    Result := 'ByteArray ' +_SerializeByteArray(e)
+  else if (t = 'String') then
+    Result := 'String ' +_SerializeString(e)
+  else if (t = 'NullRef') then
+    Result := 'NullRef ' +_SerializeNullRef(e)
 
+  else if (t = 'Empty') then
+    Result := 'Empty ' +_SerializeEmpty(e)
+  else
+    Result := 'Unknown ' +_SerializeUnknown(e);
+}	
 end;
 
 // Public
